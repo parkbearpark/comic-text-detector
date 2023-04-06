@@ -6,11 +6,11 @@ from tqdm import tqdm
 import math
 from torch.cuda import amp
 import torch
-from utils.loss import DBLoss
+from .utils.loss import DBLoss
 import torch.nn as nn
 import yaml
 from basemodel import TextDetector
-from utils.db_utils import SegDetectorRepresenter, QuadMetric
+from .utils.db_utils import SegDetectorRepresenter, QuadMetric
 import numpy as np
 from datetime import datetime
 from torchsummary import summary
@@ -20,7 +20,7 @@ import shutil
 os.environ['NUMEXPR_MAX_THREADS'] = str(numexpr.detect_number_of_cores())
 
 from db_dataset import create_dataloader
-from utils.general import LOGGER, Loggers, CUDA, DEVICE
+from .utils.general import LOGGER, Loggers, CUDA, DEVICE
 import time
 import random
 
@@ -77,11 +77,11 @@ def train(hyp):
 
     if hyp_model['db_weights'] != '':
         model.dbnet.load_state_dict(torch.load(hyp_model['db_weights'])['weights'])
-    if hyp_train['optimizer'] == 'adam': 
+    if hyp_train['optimizer'] == 'adam':
         optimizer = Adam(model.dbnet.parameters(), lr=hyp_train['lr0'], betas=(0.937, 0.999), weight_decay=0.00002)  # adjust beta1 to momentum
     else:
         optimizer = SGD(model.dbnet.parameters(), lr=hyp_train['lr0'], momentum=hyp_train['momentum'], nesterov=True, weight_decay=hyp_train['weight_decay'])
-    
+
     if hyp_train['linear_lr']:
         lf = lambda x: (1 - x / (epochs - 1)) * (1.0 - hyp_train['lrf']) + hyp_train['lrf']  # linear
     else:
@@ -92,7 +92,7 @@ def train(hyp):
     else:
         lf = one_cycle(1, hyp_train['lrf'], epochs)  # cosine 1->hyp['lrf']
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)  # plot_lr_scheduler(optimizer, scheduler, epochs)
-    
+
     logger = None
     if hyp_resume['resume_training']:
         LOGGER.info(f'resume traning ... ')
@@ -176,7 +176,7 @@ def train(hyp):
             log_dict['eval/recall'] = recall
             log_dict['eval/precision'] = precision
             log_dict['eval/f1'] = fmeasure
-            
+
             save_best = best_f1 < fmeasure
             if save_best:
                 best_f1 = fmeasure

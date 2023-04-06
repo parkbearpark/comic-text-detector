@@ -26,9 +26,9 @@ from tqdm import tqdm
 from torchvision import transforms
 import random
 from torch.utils.data import DataLoader, Dataset
-from utils.general import LOGGER, Loggers, CUDA, DEVICE
-from utils.imgproc_utils import resize_keepasp, letterbox
-from utils.io_utils import imread, imwrite
+from .utils.general import LOGGER, Loggers, CUDA, DEVICE
+from .utils.imgproc_utils import resize_keepasp, letterbox
+from .utils.io_utils import imread, imwrite
 
 WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))  # DPP
 NUM_THREADS = min(8, max(1, os.cpu_count() - 1))  # number of multiprocessing threads
@@ -95,7 +95,7 @@ class LoadImageAndMask(Dataset):
             self.img_dir = img_dir
         else:
             raise Exception('unknown img_dir format')
-        
+
         if mask_dir is None or mask_dir == '':
             self.mask_dir = self.img_dir
         else:
@@ -103,7 +103,7 @@ class LoadImageAndMask(Dataset):
                 self.mask_dir = [mask_dir]
             elif isinstance(mask_dir, list):
                 self.mask_dir = mask_dir
-        
+
         self.img_mask_list = []
         self.img_size = (img_size, img_size)
         self.stride = stride
@@ -113,7 +113,7 @@ class LoadImageAndMask(Dataset):
             self._augment_hsv = aug_param['hsv']
             self._flip_lr = aug_param['flip_lr']
             self._neg = aug_param['neg']
-            size_range = aug_param['size_range'] 
+            size_range = aug_param['size_range']
             if size_range[0] != -1:
                 min_size = round(img_size * size_range[0] / stride ) * stride
                 max_size = round(img_size * size_range[1] / stride ) * stride
@@ -152,12 +152,12 @@ class LoadImageAndMask(Dataset):
                     break
                 pbar.desc = f'Caching images ({gb / 1E9:.1f}GB )'
             pbar.close()
-        
+
     def initialize(self):
         if self.augment:
             if self.multi_size:
                 self.img_size = random.choice(self.valid_size)
-    
+
     def transform(self, img, mask):
         cv2.cvtColor(img, cv2.COLOR_BGR2RGB, img)
         img = img.astype(np.float32) / 255
@@ -225,7 +225,7 @@ if __name__ == '__main__':
     hyp['data']['cache'] = False
 
     hyp_train, hyp_data, hyp_model, hyp_logger, hyp_resume = hyp['train'], hyp['data'], hyp['model'], hyp['logger'], hyp['resume']
-    
+
     batch_size = hyp_train['batch_size']
     batch_size = 4
     num_workers = 2
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     train_dataset, train_loader = create_dataloader(train_img_dir, train_mask_dir, imgsz, batch_size, augment, aug_param, shuffle=True, workers=num_workers, cache=hyp_data['cache'])
     val_dataset, val_loader = create_dataloader(val_img_dir, val_mask_dir, imgsz, batch_size, augment=False, shuffle=False, workers=num_workers, cache=hyp_data['cache'])
     LOGGER.info(f'num training imgs: {len(train_dataset)}, num val imgs: {len(val_dataset)}')
-    
+
     for epoch in range(0, 4):  # epoch ------------------------------------------------------------------
         train_dataset.initialize()
         pbar = enumerate(train_loader)

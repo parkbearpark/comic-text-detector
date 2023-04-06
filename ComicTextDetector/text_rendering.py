@@ -17,8 +17,8 @@ from tqdm import tqdm
 import pandas as pd
 import sys
 sys.path.append(os.getcwd())
-from utils.io_utils import find_all_imgs, imread, imwrite
-from utils.imgproc_utils import *
+from .utils.io_utils import find_all_imgs, imread, imwrite
+from .utils.imgproc_utils import *
 import copy
 
 ALIGN_LEFT = 0
@@ -52,7 +52,7 @@ def draw_text_polygons(img, text_polygons, color=None):
         cv2.polylines(img,[poly.reshape((-1, 1, 2))],True,randcolor, thickness=2)
     return img
 
-def draw_textblk(textlines, font, 
+def draw_textblk(textlines, font,
                      fill='black',
                      stroke_width=0,
                      stroke_fill='grey',
@@ -64,15 +64,15 @@ def draw_textblk(textlines, font,
     text_size = np.array([font.getsize(line) for line in textlines])
     if orientation == ORIENTATION_HOR:
         line_widths, line_heights = text_size[:, 0], text_size[:, 1]
-        textblk_w = max(text_size[:, 0]) + 3*stroke_width 
+        textblk_w = max(text_size[:, 0]) + 3*stroke_width
         textblk_h = (len(textlines) - 1) * spacing + text_size[:, 1].sum() + 3*stroke_width
     else:
         line_widths, line_heights = text_size[:, 1], text_size[:, 0]
-        textblk_w = line_widths.sum() + 3*stroke_width 
+        textblk_w = line_widths.sum() + 3*stroke_width
         textblk_h = max(line_heights) + 3*stroke_width
     if orientation == ORIENTATION_VER:
         textblk_h += font.size * 3  # some fonts are not correctly aligned
-    
+
     txtblk_img = Image.new("RGBA", (textblk_w, textblk_h), (255, 255, 255, 255))
     txtblk_draw = ImageDraw.Draw(txtblk_img)
     txtblk_draw.fontmode = '1'      # disable anti-aliasing
@@ -82,7 +82,7 @@ def draw_textblk(textlines, font,
     tmp_msk_draw.fontmode = '1'
 
     textpolygons = []
-    if orientation == ORIENTATION_VER:     
+    if orientation == ORIENTATION_VER:
         for ii, line in enumerate(textlines):
             x_offset = sum(line_widths[:ii]) + stroke_width
             for jj, char in enumerate(line):
@@ -175,7 +175,7 @@ class TextLinesSampler:
         self.min_length = sampler_dict['min_length']
         self.alignment_sampler = create_random_sampler(**sampler_dict['alignment'])
         self.rotation_sampler = create_random_sampler(**sampler_dict['rotation'])
-        
+
     def __call__(self, page_w=None, page_h=None, font_size=1):
         if page_w == None:
             page_w = self.page_w
@@ -208,7 +208,7 @@ class FontSampler:
         self.size_sampler = ScaledSampler(font_dict['size'])
         self.color_sampler = RandColorSampler(font_dict['color'])
         self.sw_sampler = ScaledSampler(font_dict['stroke_width'])
-        
+
         self.font_dir = font_dir
         self.sampler_range = font_dict['num']
         self.font_idx = 0
@@ -244,7 +244,7 @@ class FontSampler:
         self.font_idx = random.randrange(0, self.sampler_range) % len(self.font_list)
         font_path = osp.join(self.font_dir, self.font_list[self.font_idx])
         font = ImageFont.truetype(font_path, fontsize)
-        
+
         return font, color, stroke_width, sw_color
 
 
@@ -295,7 +295,7 @@ class TextBlkSampler:
                     self.bboxlist = self.bboxlist.tolist()
                 else:
                     self.bboxlist = []
-                
+
 
 LANG_DICT = {'en': 0, 'ja': 1}
 def lang2cls(lang: str) -> int:
@@ -319,7 +319,7 @@ class ComicTextSampler:
         self.num_txtblk = sampler_dict['num_txtblk']
         self.font_dict = sampler_dict['font']
         self.text_dict = sampler_dict['text']
-        
+
         self.textlines_sampler = TextLinesSampler(page_size, sampler_dict['text'])
         self.font_sampler = FontSampler(self.font_dict, self.page_size)
         self.textblk_sampler = TextBlkSampler(page_size, max_tries=20)
@@ -381,7 +381,7 @@ class ComicTextSampler:
                 if re_draw:
                     txtblk_img, txtblk_mask, textpolygons = draw_textblk(textlines, font, fill=color, stroke_width=stroke_width, stroke_fill=sw_color, orientation=orientation, alignment=alignment, rotation=rotation)
                 blk_dict = {
-                    'lang': self.lang, 
+                    'lang': self.lang,
                     'lang_cls': lang2cls(self.lang),
                     'xyxy': [x1, y1, x2, y2],
                     'polylines': textpolygons
@@ -450,7 +450,7 @@ def render_comictext(comic_sampler_list, img_dir, label_dir=None, render_num=700
             else:
                 with open(yolo_save_path, 'w', encoding='utf8') as f:
                     f.write(content)
-                
+
             linepoly_save_path = osp.join(save_dir, 'line-'+osp.basename(yolo_save_path))
             np.savetxt(linepoly_save_path, textpolylines, fmt='%d')
             imwrite(osp.join(save_dir, save_name), rst, ext='.jpg')
@@ -485,7 +485,7 @@ if __name__ == '__main__':
                         'rotation': {'value': [0, 30, 60],
                                             'prob': [1, 0.3, 0.1]},
                         'num_lines': {'value': [0.15],
-                                'prob': [1]}, 
+                                'prob': [1]},
                         'length': {'value': [1],
                                 'prob': [1]},
                         'min_num_lines': 1,
@@ -500,8 +500,8 @@ if __name__ == '__main__':
                     'font': {
                             'font_dir': 'data/fonts',   # font file directory
                             'font_statics': 'data/font_statics_jp.csv',     # Just a font list to use, please create your own list and ignore the last two cols.
-                            'num': 500,     # first 500 of the fontlist will be used 
-                            # params to 
+                            'num': 500,     # first 500 of the fontlist will be used
+                            # params to
                             'size': {'value': [0.02, 0.03, 0.15],
                                     'prob': [1, 0.4, 0.15]},
                             'stroke_width': {'value': [0, 0.1, 0.15],
@@ -516,7 +516,7 @@ if __name__ == '__main__':
                         'rotation': {'value': [0, 30, 60],
                                             'prob': [1, 0.3, 0.1]},
                         'num_lines': {'value': [0.15],
-                                'prob': [1]}, 
+                                'prob': [1]},
                         'length': {'value': [0.3],
                                 'prob': [1]},
                         'min_num_lines': 1,
@@ -531,7 +531,7 @@ if __name__ == '__main__':
     # random.seed(0)
     # cts = ComicTextSampler((845, 1280), sampler_dict, seed=0)
     # jp_cts = ComicTextSampler((845, 1280), ja_sampler_dict, seed=0)
-    
+
     # img_dir = r'../../datasets/pixanimegirls'
     # save_dir = r'../../datasets/pixanimegirls/processed'
     # os.makedirs(save_dir, exist_ok=True)

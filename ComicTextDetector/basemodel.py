@@ -1,18 +1,17 @@
+import copy
 
-from utils.general import CUDA, DEVICE
-from models.yolov5.yolo import Model
-import torch
 import cv2
-import numpy as np
-from models.yolov5.yolo import load_yolov5_ckpt
-from utils.yolov5_utils import fuse_conv_and_bn
-import glob
+import torch
 import torch.nn as nn
-from utils.weight_init import init_weights
-from models.yolov5.common import C3, Conv
 from torchsummary import summary
 import torch.nn.functional as F
-import copy
+
+from .utils.weight_init import init_weights
+from .models.yolov5.common import C3, Conv
+from .models.yolov5.yolo import load_yolov5_ckpt
+from .utils.yolov5_utils import fuse_conv_and_bn
+from .utils.general import CUDA, DEVICE
+from .models.yolov5.yolo import Model
 
 TEXTDET_MASK = 0
 TEXTDET_DET = 1
@@ -76,7 +75,7 @@ class UnetHead(nn.Module):
                 return mask
             else:
                 return mask, [f80, f40, u40]
-            
+
     def init_weight(self, init_func):
         self.apply(init_func)
 
@@ -111,7 +110,7 @@ class DBHead(nn.Module):
         threshold_maps = self.thresh(x)
         x = self.binarize(x)
         shrink_maps = torch.sigmoid(x)
-        
+
         if self.training:
             binary_maps = self.step_function(shrink_maps, threshold_maps)
             if shrink_with_sigmoid:
@@ -190,7 +189,7 @@ class TextDetector(nn.Module):
         del self.seg_net.upconv5
         del self.seg_net.upconv6
         # del self.seg_net.conv_mask
-    
+
     def train_db(self):
         self.forward_mode = TEXTDET_DET
         self.backbone.eval()
@@ -248,7 +247,7 @@ class TextDetBaseDNN:
         self.input_size = input_size
         self.model = cv2.dnn.readNetFromONNX(model_path)
         self.uoln = self.model.getUnconnectedOutLayersNames()
-    
+
     def __call__(self, im_in):
         blob = cv2.dnn.blobFromImage(im_in, scalefactor=1 / 255.0, size=(self.input_size, self.input_size))
         self.model.setInput(blob)

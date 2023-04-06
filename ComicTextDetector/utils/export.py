@@ -13,7 +13,7 @@ from models.yolov5.yolo import Detect
 import torch.nn as nn
 import time
 from seg_dataset import letterbox
-from utils.yolov5_utils import fuse_conv_and_bn
+from .utils.yolov5_utils import fuse_conv_and_bn
 
 class SiLU(nn.Module):  # export-friendly version of nn.SiLU()
     @staticmethod

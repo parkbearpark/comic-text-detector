@@ -15,10 +15,10 @@ from tqdm import tqdm
 from pathlib import Path
 from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset, dataloader
-from utils.general import LOGGER, Loggers, CUDA, DEVICE
-from utils.db_utils import MakeBorderMap, MakeShrinkMap
+from .utils.general import LOGGER, Loggers, CUDA, DEVICE
+from .utils.db_utils import MakeBorderMap, MakeShrinkMap
 from seg_dataset import augment_hsv
-from utils.imgproc_utils import rotate_polygons, letterbox, resize_keepasp
+from .utils.imgproc_utils import rotate_polygons, letterbox, resize_keepasp
 from PIL import Image
 
 WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))  # DPP
@@ -48,7 +48,7 @@ class LoadImageAndAnnotations(Dataset):
             self.img_dir = img_dir
         else:
             raise Exception('unknown img_dir format')
-        
+
         if ann_dir is None or ann_dir == '':
             self.ann_dir = self.img_dir
         else:
@@ -70,7 +70,7 @@ class LoadImageAndAnnotations(Dataset):
             self._neg = aug_param['neg']
             self._rotate = aug_param['rotate']
             self.rotate_range = aug_param['rotate_range']
-            size_range = aug_param['size_range'] 
+            size_range = aug_param['size_range']
             if isinstance(size_range, list) and size_range[0] > 0:
                 min_size = round(img_size * size_range[0] / stride ) * stride
                 max_size = round(img_size * size_range[1] / stride ) * stride
@@ -108,12 +108,12 @@ class LoadImageAndAnnotations(Dataset):
                     break
                 pbar.desc = f'Caching images ({gb / 1E9:.1f}GB )'
             pbar.close()
-        
+
     def initialize(self):
         if self.augment:
             if self.multi_size:
                 self.img_size = random.choice(self.valid_size)
-    
+
     def transform(self, img):
         cv2.cvtColor(img, cv2.COLOR_BGR2RGB, img)
         img = img.astype(np.float32) / 255
@@ -125,7 +125,7 @@ class LoadImageAndAnnotations(Dataset):
         idx = random.randint(0, len(self)-1)
         img2, ann2 = load_image_annotations(self, idx, self.img_size)
         img2_h, img2_w = img2.shape[:2]
-        
+
         if img2_h > img2_w:
             imm_h = max(im_h, img2_h)
             imm_w = im_w + img2_w
@@ -140,7 +140,7 @@ class LoadImageAndAnnotations(Dataset):
                 ann = np.concatenate((ann, ann2))
             img = im_tmp
             return img, ann
-                
+
         else:
             return img, ann
 
@@ -263,12 +263,12 @@ if __name__ == '__main__':
     train_dataset, train_loader = create_dataloader(train_img_dir, train_mask_dir, imgsz, batch_size, augment, aug_param, shuffle=True, workers=num_workers, cache=hyp_data['cache'], with_ann=True)
 
     for ii in range(10):
-        
+
         for batchs in train_loader:
             train_dataset.initialize()
             print(train_dataset.img_size)
             img = batchs['imgs'][0]
-            
+
             img = train_dataset.inverse_transform(img)
             threshold_map = batchs['threshold_map'][0]
             threshold_mask = batchs['threshold_mask'][0]
@@ -282,4 +282,4 @@ if __name__ == '__main__':
             cv2.imshow('threshold_mask', threshold_mask.numpy())
             cv2.imshow('shrink_map', shrink_map.numpy())
             cv2.imshow('shrink_mask', shrink_mask.numpy())
-            cv2.waitKey(0) 
+            cv2.waitKey(0)

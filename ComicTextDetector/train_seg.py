@@ -4,7 +4,7 @@ from tqdm import tqdm
 import math
 from torch.cuda import amp
 import torch
-from utils.loss import BinaryDiceLoss
+from .utils.loss import BinaryDiceLoss
 import torch.nn as nn
 import yaml
 from basemodel import TextDetector
@@ -17,7 +17,7 @@ import shutil
 os.environ['NUMEXPR_MAX_THREADS'] = str(numexpr.detect_number_of_cores())
 
 from seg_dataset import create_dataloader
-from utils.general import LOGGER, Loggers, CUDA, DEVICE
+from .utils.general import LOGGER, Loggers, CUDA, DEVICE
 import random
 
 torch.random.manual_seed(0)
@@ -65,12 +65,12 @@ def train(hyp):
     if CUDA:
         model.cuda()
     params = model.seg_net.parameters()
-    
+
     if hyp_train['optimizer'] == 'adam':
         optimizer = Adam(params, lr=hyp_train['lr0'], betas=(hyp_train['momentum'], 0.999), weight_decay=hyp_train['weight_decay'])  # adjust beta1 to momentum
     else:
         optimizer = SGD(params, lr=hyp_train['lr0'], momentum=hyp_train['momentum'], nesterov=True, weight_decay=hyp_train['weight_decay'])
-    
+
     if hyp_train['linear_lr']:
         lf = lambda x: (1 - x / (epochs - 1)) * (1.0 - hyp_train['lrf']) + hyp_train['lrf']  # linear
     else:
@@ -85,7 +85,7 @@ def train(hyp):
     else:
         lf = one_cycle(1, hyp_train['lrf'], epochs)  # cosine 1->hyp['lrf']
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)  # plot_lr_scheduler(optimizer, scheduler, epochs)
-    
+
     logger = None
     if hyp_resume['resume_training']:
         LOGGER.info(f'resume traning ... ')
@@ -118,15 +118,15 @@ def train(hyp):
     accumulation_steps = hyp_train['accumulation_steps']
     summary(model, (3, 640, 640), device=DEVICE)
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
-        
+
         model.train_mask()
-        train_dataset.initialize() 
+        train_dataset.initialize()
         pbar = enumerate(train_loader)
         pbar = tqdm(pbar, total=nb, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
-        
+
         m_loss = 0
         for i, (imgs, masks) in pbar:
-            
+
             pbar.set_description(f' training size: {train_dataset.img_size}')
             # warm up
             ni = i + nb * epoch
@@ -151,7 +151,7 @@ def train(hyp):
                 scaler.update()
                 optimizer.zero_grad()
             m_loss = (m_loss * i + loss.detach()) / (i + 1)
-        
+
         if (epoch + 1) % eval_interval == 0:
             recall, precision, eval_m_loss = eval_model(model, val_loader)
             f1 = 2 * recall * precision / (recall + precision)
